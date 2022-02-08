@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"sync"
 
 	"github.com/SneakyBeagle/quantum_tunnel/libquantum"
 
@@ -19,7 +20,7 @@ func handleClient(client net.Conn, remote net.Conn) {
 
 	go func() {
 		bytes, err := io.Copy(client, remote)
-		fmt.Println("Wrote %d bytes to client", bytes)
+		fmt.Printf("Wrote %d bytes to client\n", bytes)
 		if err != nil {
 			log.Println(fmt.Sprintf("Error while copying remote -> local: %s", err))
 		}
@@ -28,7 +29,7 @@ func handleClient(client net.Conn, remote net.Conn) {
 
 	go func() {
 		bytes, err := io.Copy(remote, client)
-		fmt.Println("Wrote %d bytes to remote", bytes)
+		fmt.Printf("Wrote %d bytes to remote\n", bytes)
 		if err != nil {
 			log.Println(fmt.Sprintf("Error while copying local -> remote: %s", err))
 		}
@@ -47,7 +48,8 @@ func publicKeyFile(file string) ssh.AuthMethod {
 	}
 
 	key, err := ssh.ParsePrivateKey(buffer)
-	//fmt.Printf(string(key.PublicKey()))
+	//fmt.Printf("%x\n", string(key.PublicKey().Marshal()))
+	fmt.Printf("%s\n", string(key.PublicKey().Type()))
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("Cannot parse SSH private key file %s %s", file, err))
 		return nil
@@ -82,24 +84,32 @@ func Tunnel(server *libquantum.Endpoint, serverEntry *libquantum.Endpoint, remot
 	}
 	defer listener.Close()
 
+	var wg sync.WaitGroup
+	nr_clients := 0
+	wg.Add(1)
 	// Run loop
 	for {
-		//fmt.Println("test1")
 		local, err := net.Dial("tcp", remote.String())
-		//fmt.Println("test2")
 		if err != nil {
 			log.Fatalln(fmt.Printf("Dial INTO remote service error: %s", err))
 		}
 
-		//fmt.Println("test3")
 		client, err := listener.Accept()
-		//fmt.Println("test4")
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		//fmt.Println("test5")
-		handleClient(client, local)
-		//fmt.Println("test6")
+		go func(client net.Conn, local net.Conn) {
+			nr_clients++
+			fmt.Printf("Number of clients: %d\n", nr_clients)
+			wg.Add(1)
+			defer wg.Done()
+			handleClient(client, local)
+			nr_clients--
+			fmt.Printf("Number of clients: %d\n", nr_clients)
+		}(client, local)
 	}
+
+	wg.Wait()
+	fmt.Println("Finished")
 }

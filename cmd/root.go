@@ -14,10 +14,6 @@ var rootCmd = &cobra.Command{
 	Use:   "quantum_tunnel",
 	Short: "Quantum Tunnel is a simple SSH Reverse Forward tunnel",
 	Long:  "",
-
-	//Run: func(cmd *cobra.Command, args []string) {
-	//	fmt.Println("testinnnnggg")
-	//},
 }
 
 func Execute() {
