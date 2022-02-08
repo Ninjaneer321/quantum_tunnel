@@ -23,9 +23,11 @@ func runTunnel(cmd *cobra.Command, args []string) error {
 		log.Fatalln(fmt.Sprintf("Could not parse options: %s", err))
 		return err
 	}
+	log.Printf("Global Options:\n%s\n", globalOpts.String())
+	log.Printf("Tunnel Options:\n%s\n", tunnelOpts.String())
 
 	if globalOpts.Verbose {
-		fmt.Println("Verbosity is set")
+		log.Println("Verbosity is set")
 	}
 
 	remote = &libquantum.Endpoint{

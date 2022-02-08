@@ -20,18 +20,18 @@ func handleClient(client net.Conn, remote net.Conn) {
 
 	go func() {
 		bytes, err := io.Copy(client, remote)
-		fmt.Printf("Wrote %d bytes to client\n", bytes)
+		log.Printf("Wrote %d bytes to client\n", bytes)
 		if err != nil {
-			log.Println(fmt.Sprintf("Error while copying remote -> local: %s", err))
+			log.Printf("Error while copying remote -> local: %s", err)
 		}
 		chDone <- true
 	}()
 
 	go func() {
 		bytes, err := io.Copy(remote, client)
-		fmt.Printf("Wrote %d bytes to remote\n", bytes)
+		log.Printf("Wrote %d bytes to remote\n", bytes)
 		if err != nil {
-			log.Println(fmt.Sprintf("Error while copying local -> remote: %s", err))
+			log.Printf("Error while copying local -> remote: %s", err)
 		}
 		chDone <- true
 	}()
@@ -48,8 +48,8 @@ func publicKeyFile(file string) ssh.AuthMethod {
 	}
 
 	key, err := ssh.ParsePrivateKey(buffer)
-	//fmt.Printf("%x\n", string(key.PublicKey().Marshal()))
-	fmt.Printf("%s\n", string(key.PublicKey().Type()))
+	//log.Printf("%x\n", string(key.PublicKey().Marshal()))
+	log.Printf("%s\n", string(key.PublicKey().Type()))
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("Cannot parse SSH private key file %s %s", file, err))
 		return nil
@@ -66,11 +66,11 @@ func Tunnel(server *libquantum.Endpoint, serverEntry *libquantum.Endpoint, remot
 	usr_server string, privkey_file string) {
 
 	sshConfig := &ssh.ClientConfig{
-		User: usr_server,
+		User:            usr_server,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Auth: []ssh.AuthMethod{
 			publicKeyFile(privkey_file),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
 	serverConn, err := ssh.Dial("tcp", server.String(), sshConfig)
@@ -89,24 +89,28 @@ func Tunnel(server *libquantum.Endpoint, serverEntry *libquantum.Endpoint, remot
 	wg.Add(1)
 	// Run loop
 	for {
+		log.Printf("Connecting to %s\n", remote.String())
 		local, err := net.Dial("tcp", remote.String())
 		if err != nil {
-			log.Fatalln(fmt.Printf("Dial INTO remote service error: %s", err))
+			log.Fatalln(fmt.Sprintf("Dial INTO remote service error: %s", err))
 		}
+		log.Printf("Connected to %s\n", remote.String())
 
+		log.Printf("Listening for connections\n")
 		client, err := listener.Accept()
 		if err != nil {
 			log.Fatalln(err)
 		}
+		log.Printf("New connection\n")
 
 		go func(client net.Conn, local net.Conn) {
 			nr_clients++
-			fmt.Printf("Number of clients: %d\n", nr_clients)
+			log.Printf("Number of clients: %d\n", nr_clients)
 			wg.Add(1)
 			defer wg.Done()
 			handleClient(client, local)
 			nr_clients--
-			fmt.Printf("Number of clients: %d\n", nr_clients)
+			log.Printf("Number of clients: %d\n", nr_clients)
 		}(client, local)
 	}
 
