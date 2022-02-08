@@ -15,6 +15,7 @@ func runVersion(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if verbose == true {
 		fmt.Println(libquantum.NAME + " - v" + libquantum.VERSION + " by " + libquantum.AUTHOR)
 	} else {
@@ -30,5 +31,6 @@ func init() {
 		Short: "Print the version",
 		RunE:  runVersion,
 	}
+
 	rootCmd.AddCommand(cmdVersion)
 }

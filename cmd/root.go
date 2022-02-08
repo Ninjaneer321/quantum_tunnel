@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
+
+	"github.com/SneakyBeagle/quantum_tunnel/libquantum"
 
 	"github.com/spf13/cobra"
 )
@@ -22,6 +25,18 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func parseGlobalOptions() (*libquantum.Options, error) {
+	globalOpts := libquantum.NewOptions()
+
+	verbose, err := rootCmd.Flags().GetBool("verbose")
+	if err != nil {
+		log.Fatalln(fmt.Sprintf("Could not get verbose flag: %s", err))
+	}
+	globalOpts.Verbose = verbose
+
+	return globalOpts, nil
 }
 
 func init() {
